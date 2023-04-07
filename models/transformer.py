@@ -46,7 +46,7 @@ class CustomGraformer(nn.Module):
             self.masked_encoder = masked_encoder
 
         if isinstance(causal_decoder, str):
-            self.causal_decoder = AutoModel.from_pretrained(causal_decoder)  # Model head included.
+            self.causal_decoder = AutoModel.from_pretrained(causal_decoder)
         else:
             self.causal_decoder = causal_decoder
 
@@ -65,62 +65,72 @@ class CustomGraformer(nn.Module):
             num_layers=n_decoder_layers
         )
 
+        self.lmhead = nn.LazyLinear(self.causal_decoder.config.vocab_size)
+
         # HuggingFace will raise errors itself if both tokenizer and model are None.
         self.encoder_tokenizer = AutoTokenizer.from_pretrained(masked_encoder) \
             if encoder_tokenizer is None else encoder_tokenizer
         self.decoder_tokenizer = AutoTokenizer.from_pretrained(causal_decoder) \
             if decoder_tokenizer is None else decoder_tokenizer
 
-    def forward(self, source):
-        encoder_tokens = self.encoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)
-        encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
-        masked_encoder_output = self.masked_encoder(encoder_input_ids, encoder_attention_mask).pooler_output
+    def forward(self, source, src_mask, target, tgt_mask):
+        #TODO: fix this shit to migrate the code to collate_fn
+        # encoder_tokens = self.encoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)
+        # encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
+        masked_encoder_output = self.masked_encoder(source, src_mask).last_hidden_state
 
-        decoder_tokens = self.decoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)
-        decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
-        causal_decoder_output = self.causal_decoder(decoder_input_ids, decoder_attention_mask).last_hidden_state
+        # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
+        # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
+        causal_decoder_output = self.causal_decoder(target, tgt_mask).last_hidden_state
+
+        memory = self.k_layer_encoder_stack.forward(masked_encoder_output)
+
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
 
 
-
-
-
-    def freeze_decoder(self):
-        for param in self.decoder.parameters(): param.requires_grad=False
+        return F.softmax(self.lmhead(output + causal_decoder_output))
     
-    def freeze_encoder(self):
-        for param in self.encoder.parameters(): param.requires_grad=False
-    
-    # def generate_square_subsequent_mask(self, sz, device='cpu'):
-    #     mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
-    #     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-    #     return mask
+    def encode(self, src, src_mask):
+        masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
+        return self.k_layer_encoder_stack.forward(masked_encoder_output)
 
+    def decode(self, tgt, memory, tgt_mask):
+        causal_decoder_output = self.causal_decoder(tgt, tgt_mask).last_hidden_state
+        return self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
 
-    # def create_mask(self, src, tgt, device='cpu'):
+    @staticmethod
+    def generate_square_subsequent_mask(sz, device='cpu'):
+        DEVICE=device
+        mask = (torch.triu(torch.ones((sz, sz), device=DEVICE)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
+    # @staticmethod
+    # def create_mask(src, tgt, device='cpu'):
     #     src_seq_len = src.shape[0]
     #     tgt_seq_len = tgt.shape[0]
+    #     DEVICE = device
+    #     tgt_mask = __class__.generate_square_subsequent_mask(tgt_seq_len)
+    #     src_mask = torch.zeros((src_seq_len, src_seq_len),device=DEVICE).type(torch.bool)
 
-    #     tgt_mask = self.generate_square_subsequent_mask(tgt_seq_len)
-    #     src_mask = torch.zeros((src_seq_len, src_seq_len),device=device).type(torch.bool)
-
-    #     src_padding_mask = (src == self.encoder_tokenizer.pad_token_id).transpose(0, 1)
-    #     tgt_padding_mask = (tgt == self.decoder_tokenizer.pad_token_id).transpose(0, 1)
+    #     src_padding_mask = (src == PAD_IDX).transpose(0, 1)
+    #     tgt_padding_mask = (tgt == PAD_IDX).transpose(0, 1)
     #     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
-
     def greedy_decode(self, src, src_mask, max_len, start_symbol, device='cpu'):
-        src = src.to(device)
-        src_mask = src_mask.to(device)
+        DEVICE = device
+        src = src.to(DEVICE)
+        src_mask = src_mask.to(DEVICE)
 
         memory = self.encode(src, src_mask)
-        ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(device)
-        for i in range(max_len-1):
-            memory = memory.to(device)
-            tgt_mask = (self.generate_square_subsequent_mask(ys.size(0))
-                        .type(torch.bool)).to(device)
+        ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(DEVICE)
+        for _ in range(max_len-1):
+            memory = memory.to(DEVICE)
+            tgt_mask = (__class__.generate_square_subsequent_mask(ys.size(0))
+                        .type(torch.bool)).to(DEVICE)
             out = self.decode(ys, memory, tgt_mask)
             out = out.transpose(0, 1)
-            prob = self.generator(out[:, -1])
+            prob = self.lmhead(out[:, -1])
             _, next_word = torch.max(prob, dim=1)
             next_word = next_word.item()
 
@@ -130,3 +140,10 @@ class CustomGraformer(nn.Module):
                 break
         return ys
     
+    def translate(self, sentence:str):
+        self.eval()
+        encoder_tokens = self.encoder_tokenizer(sentence)
+        
+        encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
+        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.pad_token_id)
+        return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
