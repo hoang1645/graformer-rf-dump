@@ -12,13 +12,15 @@ class LightningGraformer(pl.LightningModule):
         """
         Implementation of Graformer, as per the article
         "Multilingual Translation via Grafting Pre-trained Language Models", Zewei et al.,
-        Findings of the Association for Computational Linguistics: EMNLP 2021, pages 2735–2747, November 7–11, 2021
+        Findings of the Association for Computational Linguistics: EMNLP 2021, pages 2735-2747, November 7-11, 2021
 
         Parameters:
         :param masked_encoder: the masked LM encoder, mBERT in the original paper. A string for the name of the model
             as per Hugging Face's naming rules, or the model inherited by the Hugging Face's PreTrainedModel.
         :param causal_decoder: the causal decoder, mGPT in the original paper. A string for the name of the model
             as per Hugging Face's naming rules, or the model inherited by the Hugging Face's PreTrainedModel.
+        
+        The two models should be of the same size.        
 
         For the additional K-layer encoder-decoder stack:
         :param d_model: dimension of the model, an int
@@ -26,6 +28,8 @@ class LightningGraformer(pl.LightningModule):
         :param dff: dimension of the feed-forward network
         :param n_encoder_layers: number of encoder layers
         :param n_decoder_layers: number of decoder layers
+
+        `d_model`, `n_heads` and `dff` have to match the masked encoder and causal decoder.
 
         General parameters for the additional stacks:
         :param layer_norm: Layer normalization hyperparameter
@@ -41,6 +45,8 @@ class LightningGraformer(pl.LightningModule):
                  d_model, n_heads, dff, n_encoder_layers, n_decoder_layers,
                  layer_norm, dropout, activation, encoder_tokenizer, decoder_tokenizer,
                  *args, **kwargs)
+        # The power of torch 2.0
+        self.graformer = torch.compile(self.graformer, backend='inductor')
         
         
     def forward(self, source, src_mask, target, tgt_mask):

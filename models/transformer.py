@@ -20,7 +20,7 @@ class CustomGraformer(nn.Module):
             as per Hugging Face's naming rules, or the model inherited by the Hugging Face's PreTrainedModel.
         :param causal_decoder: the causal decoder, mGPT in the original paper. A string for the name of the model
             as per Hugging Face's naming rules, or the model inherited by the Hugging Face's PreTrainedModel.
-        The two models should be of the same size.        
+        The two models should be of the same size        
 
         For the additional K-layer encoder-decoder stack:
         :param d_model: dimension of the model, an int
@@ -147,8 +147,10 @@ class CustomGraformer(nn.Module):
         self.eval()
 
         memory = self.encode(src, src_mask)
+
+        num_of_sentences = src.shape[0]
         
-        ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(DEVICE)
+        ys = torch.ones(num_of_sentences, 1).fill_(start_symbol).type(torch.long).to(DEVICE)
         for _ in range(max_len-1):
             
             memory = memory.to(DEVICE)
@@ -161,15 +163,19 @@ class CustomGraformer(nn.Module):
             next_word = next_word.item()
 
             ys = torch.cat([ys,
-                            torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=1)
+                            torch.ones(num_of_sentences, 1).type_as(src.data).fill_(next_word)], dim=1)
             if next_word == self.decoder_tokenizer.eos_token_id:
                 break
+        # print(ys)
         return ys
     
-    def translate(self, sentence:str):
+    def translate(self, sentences:str):
         self.eval()
-        encoder_tokens = self.encoder_tokenizer(sentence, return_tensors='pt')
+        encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt')
         
         encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
         target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.eos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
+
+# model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072)
+# model.translate('a a a a a a')
