@@ -57,5 +57,25 @@ class LightningGraformer(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
-        #TODO
+        x_input, x_mask = x.input_ids, x.attention_mask
+        y_input, y_mask = y.input_ids[:, :-1], y.attention_mask[:, :-1]
+
+        out = self.graformer(x_input, x_mask, y_input, y_mask)
+        y_out = y.input_ids[:, 1:]
+        loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+
+        self.log("loss", loss)
+        return loss
+    
+    def validation_step(self, valid_batch, valid_idx):
+        x, y = valid_batch
+        x_input, x_mask = x.input_ids, x.attention_mask
+        y_input, y_mask = y.input_ids[:, :-1], y.attention_mask[:, :-1]
+
+        out = self.graformer(x_input, x_mask, y_input, y_mask)
+        y_out = y.input_ids[:, 1:]
+        loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+
+        self.log("loss", loss)
+        return loss
         

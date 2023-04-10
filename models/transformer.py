@@ -117,7 +117,7 @@ class CustomGraformer(nn.Module):
         output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
 
 
-        return F.softmax(self.lmhead(output + causal_decoder_output))
+        return F.softmax(self.lmhead(output + causal_decoder_output), dim=-1)
     
     def encode(self, src, src_mask):
         masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
@@ -158,8 +158,8 @@ class CustomGraformer(nn.Module):
             causal_out, out = self.decode(ys, memory, tgt_mask)
             
             # out = out.transpose(0, 1)
-            prob = F.softmax(self.lmhead(causal_out[:,-1] + out[:, -1]))
-            _, next_word = torch.max(prob, dim=1)
+            prob = F.softmax(self.lmhead(causal_out[:,-1] + out[:, -1]), dim=-1)
+            _, next_word = torch.max(prob, dim=-1)
             next_word = next_word.item()
 
             ys = torch.cat([ys,
@@ -177,5 +177,12 @@ class CustomGraformer(nn.Module):
         target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.eos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
-# model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072)
-# model.translate('a a a a a a')
+model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072)
+model.translate('a a a a a a')
+# x = torch.randint(1, 10000, size=(2, 30))
+# x_mask = torch.ones(x.shape)
+
+# y = torch.randint(1, 10000, size=(2, 35))
+# y_mask = torch.ones(y.shape)
+
+# print(model(x, x_mask, y, y_mask).shape)
