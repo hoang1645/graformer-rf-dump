@@ -85,10 +85,6 @@ class LightningGraformer(pl.LightningModule):
         self.curr_val_loss = val_loss
         return val_loss
     
-    def on_train_epoch_end(self) -> None:
-        path = 'outputs/checkpoint_{}.pt'.format(self.current_epoch)
-        torch.save(self.graformer.state_dict(), path)
-        print("Checkpoint saved at", path)
     
     def on_validation_epoch_end(self) -> None:
         if self.curr_val_loss < self.last_val_loss:

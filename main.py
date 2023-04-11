@@ -21,9 +21,14 @@ def main():
 
         if not os.path.isdir('outputs'): os.mkdir('outputs')
         
-        callback = ModelCheckpoint(save_last=True, save_weights_only=True, every_n_epochs=1)
+        routine_pt_callback = ModelCheckpoint(save_last=True, save_weights_only=True, 
+                                   every_n_epochs=1, auto_insert_metric_name=True, verbose=True)
+        routine_pt_callback.FILE_EXTENSION = '.pt'
 
-        trainer = pl.Trainer(accelerator='gpu', max_epochs=args.epoch, callbacks=callback)
+
+        best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
+                                           filename='best.pt', monitor='val_loss', verbose=True)
+        trainer = pl.Trainer(accelerator='gpu', max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback])
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
     else:
