@@ -8,6 +8,7 @@ class LightningGraformer(pl.LightningModule):
     def __init__(self, masked_encoder:nn.Module|str, causal_decoder: nn.Module|str, 
                  d_model:int=512, n_heads=8, dff=2048, n_encoder_layers=6, n_decoder_layers=6,
                  layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None,
+                 lr=1e-5,
                  *args, **kwargs) -> None:
         """
         Implementation of Graformer, as per the article
@@ -47,13 +48,17 @@ class LightningGraformer(pl.LightningModule):
                  *args, **kwargs)
         # The power of torch 2.0
         self.graformer = torch.compile(self.graformer, backend='inductor')
+        self.lr = lr
+
+        self.last_val_loss = 1000
+        self.curr_val_loss = 0
         
         
     def forward(self, source, src_mask, target, tgt_mask):
         self.graformer.forward(source, src_mask, target, tgt_mask)
 
     def configure_optimizers(self):
-        return torch.optim.Adagrad(self.graformer.parameters(), 1e-3)
+        return torch.optim.Adagrad(self.graformer.parameters(), self.lr)
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
@@ -74,8 +79,18 @@ class LightningGraformer(pl.LightningModule):
 
         out = self.graformer(x_input, x_mask, y_input, y_mask)
         y_out = y.input_ids[:, 1:]
-        loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+        val_loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
 
-        self.log("loss", loss)
-        return loss
-        
+        self.log("val_loss", val_loss)
+        self.curr_val_loss = val_loss
+        return val_loss
+    
+    def on_train_epoch_end(self) -> None:
+        path = 'outputs/checkpoint_{}.pt'.format(self.current_epoch)
+        torch.save(self.graformer.state_dict(), path)
+        print("Checkpoint saved at", path)
+    
+    def on_validation_epoch_end(self) -> None:
+        if self.curr_val_loss < self.last_val_loss:
+            torch.save(self.graformer.state_dict(), 'outputs/checkpoint_best.pt')
+        self.last_val_loss = self.curr_val_loss

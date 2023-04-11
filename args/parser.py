@@ -11,6 +11,10 @@ class GraformerArgumentParser(object):
                                   help="model name or path to model checkpoint for the causal decoder, based on Hugging Face's names")
         self.parser.add_argument('--from_checkpoint', type=str, required=False, default=None,
                                  help='path to the model checkpoint')
+
+        self.parser.add_argument('--d_model', type=int, required=False, default=768)
+        self.parser.add_argument('--n_heads', type=int, required=False, default=12)
+        self.parser.add_argument('--dff', required=False, type=int, default=3072)
         
         self.parser.add_argument('--train_path', type=str, default=None, help='path to the training dataset')
         self.parser.add_argument('--valid_path', type=str, default=None, help='path to the validation dataset')
@@ -24,6 +28,7 @@ class GraformerArgumentParser(object):
                                  help='learning rate. not needed if only testing is required')
         self.parser.add_argument('--dropout', type=float, required=False, default=.1,
                                  help='dropout rate. not needed if only testing is required')
+        self.parser.add_argument('--epoch', type=int, default=10, required=False, help='number of training epochs')
 
         self.args = self.parser.parse_args()
         if not self.args.test_only:
@@ -31,6 +36,9 @@ class GraformerArgumentParser(object):
                 raise argparse.ArgumentError(message="Test-only scheme not on, but no training dataset path found")
             if not self.args.valid_path:
                 raise argparse.ArgumentError(message="Test-only scheme not on, but no valid dataset path found")
+        else:
+            if not self.args.from_checkpoint:
+                raise argparse.ArgumentError(message="No checkpoints to test")
     def get_args(self):
         return self.args
     
