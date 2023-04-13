@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from sacrebleu import corpus_bleu
 from torchinfo import summary
 from args.parser import GraformerArgumentParser
+from torch.cuda.amp import autocast
 import os
 
 def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader, 
@@ -25,7 +26,8 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
 
             optim.zero_grad()
 
-            loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+            loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
+                                            (out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
             bar.set_description(f"Epoch {e}, loss = {loss}")
             losses = (losses[0] + loss.item(), losses[1] + 1)
 

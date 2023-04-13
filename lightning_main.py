@@ -1,6 +1,7 @@
 from models.lightning_model import LightningGraformer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.plugins import MixedPrecisionPlugin
 from args.parser import GraformerArgumentParser
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
@@ -39,7 +40,7 @@ def main():
         best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
         trainer = pl.Trainer(accelerator='gpu', max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
-                             )
+                             plugins=MixedPrecisionPlugin('16-mixed', 'cuda'))
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
     else:

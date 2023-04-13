@@ -48,12 +48,13 @@ class LightningGraformer(pl.LightningModule):
                  d_model, n_heads, dff, n_encoder_layers, n_decoder_layers,
                  layer_norm, dropout, activation, encoder_tokenizer, decoder_tokenizer,
                  *args, **kwargs)
-        # The power of torch 2.0
+
         self.lr = lr
 
         self.last_val_loss = 1000
         self.curr_val_loss = 0
         
+        self.criterion = nn.CrossEntropyLoss(ignore_index=self.graformer.decoder_tokenizer.pad_token_id)
         
     def forward(self, source, src_mask, target, tgt_mask):
         self.graformer.forward(source, src_mask, target, tgt_mask)
@@ -68,7 +69,7 @@ class LightningGraformer(pl.LightningModule):
 
         out = self.graformer(x_input, x_mask, y_input, y_mask)
         y_out = y.input_ids[:, 1:]
-        loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+        loss = self.criterion(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
 
         self.log("loss", loss)
         return loss
@@ -80,7 +81,7 @@ class LightningGraformer(pl.LightningModule):
 
         out = self.graformer(x_input, x_mask, y_input, y_mask)
         y_out = y.input_ids[:, 1:]
-        val_loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+        val_loss = self.criterion(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
 
         self.log("val_loss", val_loss)
         self.curr_val_loss = val_loss
