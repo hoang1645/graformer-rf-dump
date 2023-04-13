@@ -17,6 +17,7 @@ def main():
     model = LightningGraformer(
             args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, lr=args.lr
         )
+    if os.name != 'nt': model = torch.compile(model, backend='inductor')
     # model.half()
     if not args.test_only:
         # dataloader goes here
@@ -39,7 +40,7 @@ def main():
         best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
         trainer = pl.Trainer(accelerator='gpu', max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
-                             auto_scale_batch_size=True)
+                             )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
     else:

@@ -49,7 +49,6 @@ class LightningGraformer(pl.LightningModule):
                  layer_norm, dropout, activation, encoder_tokenizer, decoder_tokenizer,
                  *args, **kwargs)
         # The power of torch 2.0
-        if os.name != 'nt': self.graformer = torch.compile(self.graformer, backend='inductor')
         self.lr = lr
 
         self.last_val_loss = 1000
