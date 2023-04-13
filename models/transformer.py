@@ -2,11 +2,11 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
+from typing import Optional, Union
 
 
 class CustomGraformer(nn.Module):
-    def __init__(self, masked_encoder:nn.Module|str, causal_decoder: nn.Module|str, 
+    def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
                  d_model:int=512, n_heads=8, dff=2048, n_encoder_layers=6, n_decoder_layers=6,
                  layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None,
                  *args, **kwargs) -> None:
@@ -102,6 +102,7 @@ class CustomGraformer(nn.Module):
         if self.decoder_tokenizer.pad_token_id is None:
             self.decoder_tokenizer.pad_token_id = self.decoder_tokenizer.eos_token_id
             self.decoder_tokenizer.pad_token = self.decoder_tokenizer.eos_token
+
     def forward(self, source, src_mask, target, tgt_mask):
         #TODO: fix this shit to migrate the code to collate_fn
         # encoder_tokens = self.encoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)
@@ -177,8 +178,9 @@ class CustomGraformer(nn.Module):
         target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.eos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
-model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072)
-model.translate('a a a a a a')
+# model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072).to('cuda')
+# input()
+# model.translate('a a a a a a')
 # x = torch.randint(1, 10000, size=(2, 30))
 # x_mask = torch.ones(x.shape)
 

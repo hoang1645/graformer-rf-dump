@@ -3,9 +3,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from models.transformer import CustomGraformer
+from typing import Union
 
 class LightningGraformer(pl.LightningModule):
-    def __init__(self, masked_encoder:nn.Module|str, causal_decoder: nn.Module|str, 
+    def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
                  d_model:int=512, n_heads=8, dff=2048, n_encoder_layers=6, n_decoder_layers=6,
                  layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None,
                  lr=1e-5,
