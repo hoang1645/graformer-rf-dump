@@ -4,6 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 from models.transformer import CustomGraformer
 from typing import Union
+import os
 
 class LightningGraformer(pl.LightningModule):
     def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
@@ -48,7 +49,7 @@ class LightningGraformer(pl.LightningModule):
                  layer_norm, dropout, activation, encoder_tokenizer, decoder_tokenizer,
                  *args, **kwargs)
         # The power of torch 2.0
-        #  self.graformer = torch.compile(self.graformer, backend='inductor')
+        if os.name != 'nt': self.graformer = torch.compile(self.graformer, backend='inductor')
         self.lr = lr
 
         self.last_val_loss = 1000
@@ -59,7 +60,7 @@ class LightningGraformer(pl.LightningModule):
         self.graformer.forward(source, src_mask, target, tgt_mask)
 
     def configure_optimizers(self):
-        return torch.optim.Adagrad(self.graformer.parameters(), self.lr)
+        return torch.optim.Adam(self.graformer.parameters(), self.lr)
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
