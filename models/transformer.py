@@ -172,7 +172,7 @@ class CustomGraformer(nn.Module):
     
     def translate(self, sentences:str):
         self.eval()
-        encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt')
+        encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt', padding=True)
         
         encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
         target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.eos_token_id)

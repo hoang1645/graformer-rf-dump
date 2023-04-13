@@ -7,7 +7,7 @@ def get_dataloader(source, target, src_tokenizer, tgt_tokenizer, batch_size, tes
     def collate_fn(batch):
         # print(batch)
         _source, _target = [b[0] for b in batch], [b[1] for b in batch]
-        _source, _target = src_tokenizer(_source, return_tensors='pt'), tgt_tokenizer(_target, return_tensors='pt')
+        _source, _target = src_tokenizer(_source, return_tensors='pt', padding=True), tgt_tokenizer(_target, return_tensors='pt', padding=True)
         return _source, _target
     return DataLoader(
         dataset=IWSLTDataset(source, target),
