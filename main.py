@@ -62,7 +62,7 @@ def main():
     model = CustomGraformer(
             args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff,
         ).to('cuda')
-    if os.name != 'nt': model = torch.compile(model, backend='inductor')
+    if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor')
     summary(model)
     
     if args.from_checkpoint:

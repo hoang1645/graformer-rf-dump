@@ -34,6 +34,8 @@ class GraformerArgumentParser(object):
         self.parser.add_argument('--epoch', type=int, default=10, required=False, help='number of training epochs')
         self.parser.add_argument('--batch_size', type=int, default=32)
         self.parser.add_argument('--num_workers', type=int, default=4)
+        self.parser.add_argument('--compile', action=argparse.BooleanOptionalAction \
+                                 if sys.version_info.major==3 and sys.version_info.minor>=9 else 'store_true')
 
         self.args = self.parser.parse_args()
         if not self.args.test_only:

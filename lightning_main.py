@@ -16,7 +16,7 @@ def main():
     model = LightningGraformer(
             args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, lr=args.lr
         )
-    if os.name != 'nt': model = torch.compile(model, backend='inductor', mode='reduce-overhead')
+    if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:
         # dataloader goes here
