@@ -21,12 +21,12 @@ def main():
     if not args.test_only:
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
-                                          AutoTokenizer.from_pretrained(args.masked_encoder), 
-                                          AutoTokenizer.from_pretrained(args.causal_decoder),
+                                          model.graformer.encoder_tokenizer, 
+                                          model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size)
         val_dataloader = get_dataloader(args.valid_path_src, args.valid_path_tgt, 
-                                          AutoTokenizer.from_pretrained(args.masked_encoder), 
-                                          AutoTokenizer.from_pretrained(args.causal_decoder),
+                                          model.graformer.encoder_tokenizer, 
+                                          model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size)
         
         if not os.path.isdir('outputs'): os.mkdir('outputs')

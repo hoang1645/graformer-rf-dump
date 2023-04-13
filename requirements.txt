@@ -2,3 +2,4 @@ nltk
 transformers>=4.0.0
 torch>=2.0.0
 pytorch-lightning>=1.9.3,<2.0.0
+sacrebleu
