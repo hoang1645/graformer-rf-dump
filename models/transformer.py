@@ -68,7 +68,7 @@ class CustomGraformer(nn.Module):
             num_layers=n_decoder_layers
         )
 
-        self.lmhead = nn.LazyLinear(self.causal_decoder.config.vocab_size)
+        self.lmhead = nn.Linear(d_model, self.causal_decoder.config.vocab_size)
 
         # HuggingFace will raise errors itself if both tokenizer and model are None.
         self.encoder_tokenizer = AutoTokenizer.from_pretrained(masked_encoder) \

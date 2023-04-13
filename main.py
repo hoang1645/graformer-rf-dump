@@ -2,8 +2,11 @@ from models.lightning_model import LightningGraformer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from args.parser import GraformerArgumentParser
-import nltk
+from sacrebleu import corpus_bleu
 from tqdm import tqdm
+from datasets.dataloader import get_dataloader
+from transformers import AutoTokenizer
+
 import os
 
 def main():
@@ -16,8 +19,14 @@ def main():
     
     if not args.test_only:
         # dataloader goes here
-        train_dataloader = ...
-        val_dataloader = ...
+        train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
+                                          AutoTokenizer.from_pretrained(args.masked_encoder), 
+                                          AutoTokenizer.from_pretrained(args.causal_decoder),
+                                          batch_size=args.batch_size)
+        val_dataloader = get_dataloader(args.valid_path_src, args.valid_path_tgt, 
+                                          AutoTokenizer.from_pretrained(args.masked_encoder), 
+                                          AutoTokenizer.from_pretrained(args.causal_decoder),
+                                          batch_size=args.batch_size)
 
         if not os.path.isdir('outputs'): os.mkdir('outputs')
         
@@ -35,14 +44,20 @@ def main():
         model.load_from_checkpoint(args.from_checkpoint)
     
     # test
-    test_dataloader = ... # don't tokenize in test dataloader
+    test_dataloader = val_dataloader = get_dataloader(args.test_path_src, args.test_path_tgt, 
+                                          AutoTokenizer.from_pretrained(args.masked_encoder), 
+                                          AutoTokenizer.from_pretrained(args.causal_decoder),
+                                          batch_size=args.batch_size, test=True) # don't tokenize in test dataloader
     core = model.graformer
-    bleu = 0
+    
+    translations = []
+    targets = []
+
     for src, tgt in tqdm(test_dataloader):
         trl = core.translate(src)
-        for trl_, tgt_ in zip(trl, tgt):
-            trl_ = trl_.split()
-            tgt_ = tgt.split()
-            bleu += nltk.bleu([tgt_], trl_)
+        translations.extend(trl)
+        targets.extend(tgt)
     
-    print(bleu)
+    print(corpus_bleu(translations, [targets]))
+
+main()

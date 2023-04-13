@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 from torch.nn import functional as F
-from transformer import CustomGraformer
+from models.transformer import CustomGraformer
 
 class LightningGraformer(pl.LightningModule):
     def __init__(self, masked_encoder:nn.Module|str, causal_decoder: nn.Module|str, 
@@ -47,7 +47,7 @@ class LightningGraformer(pl.LightningModule):
                  layer_norm, dropout, activation, encoder_tokenizer, decoder_tokenizer,
                  *args, **kwargs)
         # The power of torch 2.0
-        self.graformer = torch.compile(self.graformer, backend='inductor')
+        #  self.graformer = torch.compile(self.graformer, backend='inductor')
         self.lr = lr
 
         self.last_val_loss = 1000

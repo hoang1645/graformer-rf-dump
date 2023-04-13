@@ -17,7 +17,7 @@ class IWSLTDataset(Dataset):
     @staticmethod
     def _read_txt(fpath):
         sentences = list()
-        with open(fpath, "r") as f:
+        with open(fpath, "r", encoding='utf8') as f:
             for line in f:
                 sentences.append(line.rstrip())
         return sentences
