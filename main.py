@@ -43,7 +43,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
         model.eval()
 
         with torch.no_grad(): 
-            for val_batch in val_dataloader(bar:=tqdm(train_dataloader, desc=f"Evaluating")):
+            for val_batch in (bar:=tqdm(val_dataloader, desc=f"Evaluating")):
                 x, y = val_batch
                 x_input, x_mask = x.input_ids.to('cuda'), x.attention_mask.to('cuda')
                 y_input, y_mask = y.input_ids.to('cuda'), y.attention_mask.to('cuda')
