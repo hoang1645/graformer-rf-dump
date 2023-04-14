@@ -85,7 +85,7 @@ def main():
         model.load_state_dict(torch.load(args.from_checkpoint))
 
     if not args.test_only:
-        optim = Adafactor(model.parameters(), args.lr, weight_decay=1e-5)
+        optim = Adafactor(model.parameters(), args.lr, weight_decay=args.weight_decay)
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.encoder_tokenizer, 
