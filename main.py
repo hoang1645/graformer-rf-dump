@@ -28,7 +28,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
             with autocast():
                 out = model(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
                 y_out = F.one_hot(y.input_ids[:, 1:], model.decoder_tokenizer.vocab_size).float()
-                loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
+                loss = torch.nn.CrossEntropyLoss()\
                                             (out, y_out)
             bar.set_description(f"Epoch {e}, loss = {loss}")
             losses = (losses[0] + loss.item(), losses[1] + 1)
@@ -51,7 +51,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
                 with autocast():
                     out = model(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
                     y_out = F.one_hot(y.input_ids[:, 1:], model.decoder_tokenizer.vocab_size).float()
-                    loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
+                    loss = torch.nn.CrossEntropyLoss()\
                                                 (out, y_out)
         
         print(f"Validation loss: {losses[0]/losses[1]}")
