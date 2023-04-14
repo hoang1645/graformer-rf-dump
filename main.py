@@ -27,7 +27,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
             optim.zero_grad()
             with autocast():
                 out = model(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
-                y_out = F.one_hot(y.input_ids[:, 1:])
+                y_out = F.one_hot(y.input_ids[:, 1:], model.decoder_tokenizer.vocab_size).float()
                 loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
                                             (out, y_out)
             bar.set_description(f"Epoch {e}, loss = {loss}")
@@ -37,7 +37,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
             optim.step()
 
         print(f"Training loss: {losses[0]/losses[1]}")
-
+        
         # validation
         losses = (0, 0)
         model.eval()
@@ -50,7 +50,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
                 
                 with autocast():
                     out = model(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
-                    y_out = F.one_hot(y.input_ids[:, 1:])
+                    y_out = F.one_hot(y.input_ids[:, 1:], model.decoder_tokenizer.vocab_size).float()
                     loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
                                                 (out, y_out)
         
@@ -82,7 +82,7 @@ def main():
         model.load_state_dict(torch.load(args.from_checkpoint))
 
     if not args.test_only:
-        optim = Adafactor(model.parameters(), args.lr, weight_decay=args.weight_decay)
+        optim = Adafactor(model.parameters(), weight_decay=args.weight_decay)
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.encoder_tokenizer, 
