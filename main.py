@@ -10,6 +10,7 @@ from torch.cuda.amp import autocast
 import os
 from tokenizer.sentencepiece_tokenizer import SentencePieceTokenizer
 from models.botch import get_model_with_different_embedding_layer
+from transformers.optimization import Adafactor
 
 def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader, 
           val_dataloader:torch.utils.data.DataLoader, optim:torch.optim.Optimizer, epoch:int):
@@ -84,7 +85,7 @@ def main():
         model.load_state_dict(torch.load(args.from_checkpoint))
 
     if not args.test_only:
-        optim = torch.optim.Adagrad(model.parameters(), args.lr, 1e-5, 1e-5)
+        optim = Adafactor(model.parameters(), args.lr, weight_decay=1e-5)
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.encoder_tokenizer, 
