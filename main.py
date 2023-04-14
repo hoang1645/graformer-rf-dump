@@ -46,13 +46,13 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
             for val_batch in val_dataloader(bar:=tqdm(train_dataloader, desc=f"Evaluating")):
                 x, y = val_batch
                 x_input, x_mask = x.input_ids.to('cuda'), x.attention_mask.to('cuda')
-                y_input, y_mask = y.input_ids[:, :-1].to('cuda'), y.attention_mask[:, :-1].to('cuda')
-
-                out = model(x_input, x_mask, y_input, y_mask)
-                y_out = y.input_ids[:, 1:].to('cuda')
-
-                loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
-                losses = (losses[0] + loss.item(), losses[1] + 1)
+                y_input, y_mask = y.input_ids.to('cuda'), y.attention_mask.to('cuda')
+                
+                with autocast():
+                    out = model(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
+                    y_out = F.one_hot(y.input_ids[:, 1:])
+                    loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
+                                                (out, y_out)
         
         print(f"Validation loss: {losses[0]/losses[1]}")
         if losses[0]/losses[1] < min_val_loss:
