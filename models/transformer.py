@@ -54,7 +54,11 @@ class CustomGraformer(nn.Module):
             self.causal_decoder = causal_decoder
 
         # Freeze the causal decoder
-        self.causal_decoder.requires_grad_(False)
+        if isinstance(causal_decoder, str):
+            self.causal_decoder.requires_grad_(False)
+        else:
+            for child in list(self.causal_decoder.children())[1:]:
+                child.requires_grad_(False)
 
         self.k_layer_encoder_stack = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model, n_heads, dff, dropout, activation, layer_norm_eps=layer_norm, batch_first=True),
@@ -68,7 +72,7 @@ class CustomGraformer(nn.Module):
             num_layers=n_decoder_layers
         )
 
-        
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         # HuggingFace will raise errors itself if both tokenizer and model are None.
         self.encoder_tokenizer = AutoTokenizer.from_pretrained(masked_encoder) \

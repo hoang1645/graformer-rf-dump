@@ -3,3 +3,5 @@ transformers>=4.0.0
 torch>=2.0.0
 pytorch-lightning>=2.0.0
 sacrebleu
+torchinfo
+sentencepiece
