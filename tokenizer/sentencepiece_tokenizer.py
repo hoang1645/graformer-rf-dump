@@ -30,7 +30,7 @@ class SentencePieceTokenizer(object):
             ids.append(self.sp.PieceToId(token))
         if return_tensors == 'pt': ids = torch.LongTensor(ids)
         return ids
-    def __call__(self, texts, return_tensors='pt', padding=True):
+    def __call__(self, texts, return_tensors='pt', padding=True, pad_left=True):
         ids = self.sp.tokenize(texts)
         if return_tensors == 'pt': 
             max_len = 0
@@ -40,7 +40,10 @@ class SentencePieceTokenizer(object):
             attention_mask = t_ids.long()
             t_ids = t_ids * self.pad_token_id
             for i, id_ in enumerate(ids):
-                t_ids[i, :len(id_)] = torch.Tensor(id_)
+                if pad_left:
+                    t_ids[i, :len(id_)] = torch.Tensor(id_)
+                else:
+                    t_ids[i, -len(id_):] = torch.Tensor(id_)
             ids = t_ids.long()
             attention_mask[t_ids==self.pad_token_id] = 0
         else:
