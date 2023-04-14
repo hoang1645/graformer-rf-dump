@@ -68,7 +68,7 @@ class CustomGraformer(nn.Module):
             num_layers=n_decoder_layers
         )
 
-        self.lmhead = nn.Linear(d_model, self.causal_decoder.config.vocab_size)
+        
 
         # HuggingFace will raise errors itself if both tokenizer and model are None.
         self.encoder_tokenizer = AutoTokenizer.from_pretrained(masked_encoder) \
@@ -102,7 +102,11 @@ class CustomGraformer(nn.Module):
         if self.decoder_tokenizer.pad_token_id is None:
             self.decoder_tokenizer.pad_token_id = self.decoder_tokenizer.eos_token_id
             self.decoder_tokenizer.pad_token = self.decoder_tokenizer.eos_token
+            
 
+
+        self.lmhead = nn.Linear(d_model, self.decoder_tokenizer.vocab_size)
+            
     def forward(self, source, src_mask, target, tgt_mask):
         #TODO: fix this shit to migrate the code to collate_fn
         # encoder_tokens = self.encoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)

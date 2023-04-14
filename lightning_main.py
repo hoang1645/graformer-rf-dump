@@ -7,6 +7,8 @@ from sacrebleu import corpus_bleu
 from tqdm import tqdm
 from datasets.dataloader import get_dataloader
 import torch
+from models.botch import *
+from tokenizer.sentencepiece_tokenizer import *
 
 import os
 
@@ -14,9 +16,15 @@ def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
+    tokenizer = SentencePieceTokenizer('../sentencepiece.model')
+
+    botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
+                                                                         tokenizer.vocab_size, tokenizer.pad_token_id)
+
     model = LightningGraformer(
-            args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, lr=args.lr
-        )
+            botched_bert, botched_gpt, args.d_model, args.n_heads, args.dff, lr=args.lr,
+            encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
+        ).to('cpu')
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:

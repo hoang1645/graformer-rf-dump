@@ -8,6 +8,8 @@ from torchinfo import summary
 from args.parser import GraformerArgumentParser
 from torch.cuda.amp import autocast
 import os
+from tokenizer.sentencepiece_tokenizer import SentencePieceTokenizer
+from models.botch import get_model_with_different_embedding_layer
 
 def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader, 
           val_dataloader:torch.utils.data.DataLoader, optim:torch.optim.Optimizer, epoch:int):
@@ -39,16 +41,18 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
         # validation
         losses = (0, 0)
         model.eval()
-        for val_batch in val_dataloader(bar:=tqdm(train_dataloader, desc=f"Evaluating")):
-            x, y = val_batch
-            x_input, x_mask = x.input_ids.to('cuda'), x.attention_mask.to('cuda')
-            y_input, y_mask = y.input_ids[:, :-1].to('cuda'), y.attention_mask[:, :-1].to('cuda')
 
-            out = model(x_input, x_mask, y_input, y_mask)
-            y_out = y.input_ids[:, 1:].to('cuda')
+        with torch.no_grad(): 
+            for val_batch in val_dataloader(bar:=tqdm(train_dataloader, desc=f"Evaluating")):
+                x, y = val_batch
+                x_input, x_mask = x.input_ids.to('cuda'), x.attention_mask.to('cuda')
+                y_input, y_mask = y.input_ids[:, :-1].to('cuda'), y.attention_mask[:, :-1].to('cuda')
 
-            loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
-            losses = (losses[0] + loss.item(), losses[1] + 1)
+                out = model(x_input, x_mask, y_input, y_mask)
+                y_out = y.input_ids[:, 1:].to('cuda')
+
+                loss = F.cross_entropy(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
+                losses = (losses[0] + loss.item(), losses[1] + 1)
         
         print(f"Validation loss: {losses[0]/losses[1]}")
         if losses[0]/losses[1] < min_val_loss:
@@ -61,8 +65,15 @@ def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
+    tokenizer = SentencePieceTokenizer('sentencepiece.model')
+
+    botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
+                                                                         tokenizer.vocab_size, tokenizer.pad_token_id)
+
+
     model = CustomGraformer(
-            args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff,
+            botched_bert, botched_gpt, args.d_model, args.n_heads, args.dff, encoder_tokenizer=tokenizer,
+            decoder_tokenizer=tokenizer
         ).to('cuda')
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor')
     summary(model)

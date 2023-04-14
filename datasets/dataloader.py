@@ -14,5 +14,5 @@ def get_dataloader(source, target, src_tokenizer, tgt_tokenizer, batch_size, num
         batch_size=batch_size,
         shuffle=not test,
         collate_fn=collate_fn if not test else None,
-        num_workers=num_workers
+        # num_workers=num_workers
     )
