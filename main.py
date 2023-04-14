@@ -22,13 +22,15 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
             x, y = train_batch
             x_input, x_mask = x.input_ids.to('cuda'), x.attention_mask.to('cuda')
             y_input, y_mask = y.input_ids[:, :-1].to('cuda'), y.attention_mask[:, :-1].to('cuda')
-
-            out = model(x_input, x_mask, y_input, y_mask)
-            y_out = y.input_ids[:, 1:].to('cuda')
-
+            
             optim.zero_grad()
+            with autocast():
+                out = model(x_input, x_mask, y_input, y_mask)
+                y_out = y.input_ids[:, 1:].to('cuda')
 
-            loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
+            
+
+                loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
                                             (out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
             bar.set_description(f"Epoch {e}, loss = {loss}")
             losses = (losses[0] + loss.item(), losses[1] + 1)
