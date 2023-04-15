@@ -9,7 +9,7 @@ from datasets.dataloader import get_dataloader
 import torch
 from models.botch import *
 from tokenizer.sentencepiece_tokenizer import *
-
+from pytorch_lightning.strategies.ddp import DDPStrategy
 import os
 
 def main():
@@ -51,6 +51,7 @@ def main():
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
         trainer = pl.Trainer(accelerator='auto', devices=-1,
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
+                             strategy=DDPStrategy(find_unused_parameters=True)
                              )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
