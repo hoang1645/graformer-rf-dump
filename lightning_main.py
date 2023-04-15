@@ -49,7 +49,7 @@ def main():
 
         best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
-        trainer = pl.Trainer(accelerator='auto', devices=-1, num_nodes=torch.cuda.device_count(),
+        trainer = pl.Trainer(accelerator='auto', devices=-1,
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
                              )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
