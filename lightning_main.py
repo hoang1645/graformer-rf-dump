@@ -51,7 +51,7 @@ def main():
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
         trainer = pl.Trainer(accelerator='auto', devices=-1,
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
-                             strategy=DDPStrategy(find_unused_parameters=True)
+                             strategy=DDPStrategy(find_unused_parameters=True if torch.cuda.device_count() > 1 else 'auto')
                              )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
