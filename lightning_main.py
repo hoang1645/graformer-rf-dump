@@ -51,7 +51,7 @@ def main():
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
         trainer = pl.Trainer(accelerator='auto', devices=-1, 
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
-                             plugins=MixedPrecisionPlugin('16-mixed', 'cuda'))
+                             )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 
     else:
