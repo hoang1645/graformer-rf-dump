@@ -8,7 +8,7 @@ from typing import Optional, Union
 class CustomGraformer(nn.Module):
     def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
                  d_model:int=512, n_heads=8, dff=2048, n_encoder_layers=6, n_decoder_layers=6,
-                 layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None,
+                 layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None, device='cuda',
                  *args, **kwargs) -> None:
         """
         Implementation of Graformer, as per the article
@@ -72,7 +72,7 @@ class CustomGraformer(nn.Module):
             num_layers=n_decoder_layers
         )
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = device
 
         # HuggingFace will raise errors itself if both tokenizer and model are None.
         self.encoder_tokenizer = AutoTokenizer.from_pretrained(masked_encoder) \
@@ -112,11 +112,8 @@ class CustomGraformer(nn.Module):
         self.lmhead = nn.Linear(d_model, self.decoder_tokenizer.vocab_size)
             
     def forward(self, source, src_mask, target, tgt_mask):
-        #TODO: fix this shit to migrate the code to collate_fn
-        # encoder_tokens = self.encoder_tokenizer(source, return_tensors='pt', padding='max_length', max_length=128)
-        # encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
         masked_encoder_output = self.masked_encoder(source, src_mask).last_hidden_state
-
+        
         # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
         causal_decoder_output = self.causal_decoder(target, tgt_mask).last_hidden_state
@@ -148,8 +145,8 @@ class CustomGraformer(nn.Module):
     #     tgt_padding_mask = (tgt == PAD_IDX).transpose(0, 1)
     #     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
-    def greedy_decode(self, src, src_mask, max_len, start_symbol, device='cpu'):
-        DEVICE = device
+    def greedy_decode(self, src, src_mask, max_len, start_symbol):
+        DEVICE = self.device
         src = src.to(DEVICE)
         src_mask = src_mask.to(DEVICE)
 
@@ -184,7 +181,7 @@ class CustomGraformer(nn.Module):
         encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt', padding=True)
         
         encoder_input_ids, encoder_attention_mask = encoder_tokens.input_ids, encoder_tokens.attention_mask
-        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.bos_token_id, device='cuda')
+        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.bos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
 # model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072).to('cuda')

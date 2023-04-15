@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from models.transformer import CustomGraformer
 from typing import Union
 import os
+from transformers.optimization import Adafactor
 
 class LightningGraformer(pl.LightningModule):
     def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
@@ -60,27 +61,29 @@ class LightningGraformer(pl.LightningModule):
         self.graformer.forward(source, src_mask, target, tgt_mask)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.graformer.parameters(), self.lr)
+        return Adafactor(self.graformer.parameters(), weight_decay=1e-5)
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
         x_input, x_mask = x.input_ids, x.attention_mask
-        y_input, y_mask = y.input_ids[:, :-1], y.attention_mask[:, :-1]
-
-        out = self.graformer(x_input, x_mask, y_input, y_mask)
-        y_out = y.input_ids[:, 1:]
+        y_input, y_mask = y.input_ids, y.attention_mask
+        
+        
+        out = self.graformer(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
+        y_out = y_input[:, 1:]
         loss = self.criterion(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
 
         self.log("loss", loss)
+
         return loss
     
     def validation_step(self, valid_batch, valid_idx):
         x, y = valid_batch
         x_input, x_mask = x.input_ids, x.attention_mask
-        y_input, y_mask = y.input_ids[:, :-1], y.attention_mask[:, :-1]
+        y_input, y_mask = y.input_ids, y.attention_mask
 
-        out = self.graformer(x_input, x_mask, y_input, y_mask)
-        y_out = y.input_ids[:, 1:]
+        out = self.graformer(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
+        y_out = y_input[:, 1:]
         val_loss = self.criterion(out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
 
         self.log("val_loss", val_loss)
@@ -88,7 +91,7 @@ class LightningGraformer(pl.LightningModule):
         return val_loss
     
     
-    def on_validation_epoch_end(self) -> None:
-        if self.curr_val_loss < self.last_val_loss:
-            torch.save(self.graformer.state_dict(), 'outputs/checkpoint_best.pt')
-        self.last_val_loss = self.curr_val_loss
+    # def on_validation_epoch_end(self) -> None:
+    #     if self.curr_val_loss < self.last_val_loss:
+    #         torch.save(self.graformer.state_dict(), 'outputs/checkpoint_best.pt')
+    #     self.last_val_loss = self.curr_val_loss

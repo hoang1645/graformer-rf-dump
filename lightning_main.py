@@ -16,27 +16,29 @@ def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
-    tokenizer = SentencePieceTokenizer('../sentencepiece.model')
+    tokenizer = SentencePieceTokenizer('sentencepiece.model')
 
     botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
                                                                          tokenizer.vocab_size, tokenizer.pad_token_id)
 
     model = LightningGraformer(
-            botched_bert, botched_gpt, args.d_model, args.n_heads, args.dff, lr=args.lr,
+            botched_bert, botched_gpt, args.d_model, args.n_heads, args.dff, 
             encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
-        ).to('cpu')
+        )
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
-                                          model.graformer.encoder_tokenizer, 
-                                          model.graformer.decoder_tokenizer,
+                                          tokenizer, 
+                                          tokenizer,
                                           batch_size=args.batch_size)
         val_dataloader = get_dataloader(args.valid_path_src, args.valid_path_tgt, 
-                                          model.graformer.encoder_tokenizer, 
-                                          model.graformer.decoder_tokenizer,
+                                          tokenizer, 
+                                          tokenizer,
                                           batch_size=args.batch_size)
+        
+        # for src, tgt in train_dataloader: print(src.input_ids.shape, tgt.input_ids.shape)
         
         if not os.path.isdir('outputs'): os.mkdir('outputs')
         
@@ -47,7 +49,8 @@ def main():
 
         best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
                                            filename='outputs/best.pt', monitor='val_loss', verbose=True)
-        trainer = pl.Trainer(accelerator='gpu', max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
+        trainer = pl.Trainer(accelerator='auto', devices=-1, 
+                             max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
                              plugins=MixedPrecisionPlugin('16-mixed', 'cuda'))
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
 

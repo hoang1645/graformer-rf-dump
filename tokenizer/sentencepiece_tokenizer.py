@@ -1,6 +1,7 @@
 import sentencepiece as spm
 import torch
-from argparse import Namespace
+from transformers.tokenization_utils_base import BatchEncoding
+
 
 
 # Tried to mimic as close to HuggingFace's PreTrainedTokenizers as possible
@@ -48,9 +49,9 @@ class SentencePieceTokenizer(object):
             attention_mask[t_ids==self.pad_token_id] = 0
         else:
             attention_mask = [[1] * len(id_) for id_ in ids]
-        return_results = Namespace()
-        return_results.input_ids = ids.to('cpu')
-        return_results.attention_mask = attention_mask.to('cpu')
+        return_results = BatchEncoding()
+        return_results['input_ids'] = ids
+        return_results['attention_mask'] = attention_mask
         return return_results
     
     def batch_decode(self, ids, **kwargs):
