@@ -126,7 +126,7 @@ class CustomGraformer(nn.Module):
         output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
 
 
-        return F.softmax(self.lmhead(output + causal_decoder_output), dim=-1)
+        return self.lmhead(output + causal_decoder_output)
     
     def encode(self, src, src_mask):
         masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
@@ -169,7 +169,7 @@ class CustomGraformer(nn.Module):
             causal_out, out = self.decode(ys, memory, tgt_mask)
             
             # out = out.transpose(0, 1)
-            prob = F.softmax(self.lmhead(causal_out[:,-1] + out[:, -1]), dim=-1)
+            prob = self.lmhead(causal_out[:,-1] + out[:, -1])
             _, next_word = torch.max(prob, dim=-1)
             next_word = next_word.reshape((-1,1))
             next_word[last_word==self.decoder_tokenizer.eos_token_id or last_word==self.decoder_tokenizer.pad_token_id] = self.decoder_tokenizer.pad_token_id
