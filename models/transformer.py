@@ -159,22 +159,23 @@ class CustomGraformer(nn.Module):
 
         num_of_sentences = src.shape[0]
         
+        last_word = torch.zeros((num_of_sentences, 1)).long()
+
         ys = torch.ones(num_of_sentences, 1).fill_(start_symbol).type(torch.long).to(DEVICE)
         for _ in range(max_len-1):
             
             memory = memory.to(DEVICE)
-            tgt_mask = torch.ones(ys.shape)
+            tgt_mask = torch.ones(ys.shape).to(DEVICE)
             causal_out, out = self.decode(ys, memory, tgt_mask)
             
             # out = out.transpose(0, 1)
             prob = F.softmax(self.lmhead(causal_out[:,-1] + out[:, -1]), dim=-1)
             _, next_word = torch.max(prob, dim=-1)
-            next_word = next_word.item()
-
-            ys = torch.cat([ys,
-                            torch.ones(num_of_sentences, 1).type_as(src.data).fill_(next_word)], dim=1)
-            if next_word == self.decoder_tokenizer.eos_token_id:
-                break
+            next_word = next_word.reshape((-1,1))
+            next_word[last_word==self.decoder_tokenizer.eos_token_id or last_word==self.decoder_tokenizer.pad_token_id] = self.decoder_tokenizer.pad_token_id
+            last_word = next_word.long().reshape((-1,1))
+            ys = torch.cat([ys, \
+                            last_word], dim=1)
         # print(ys)
         return ys
     
@@ -182,8 +183,8 @@ class CustomGraformer(nn.Module):
         self.eval()
         encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt', padding=True)
         
-        encoder_input_ids, encoder_attention_mask = encoder_tokens['input_ids'], encoder_tokens['attention_mask']
-        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.eos_token_id, device='cuda')
+        encoder_input_ids, encoder_attention_mask = encoder_tokens.input_ids, encoder_tokens.attention_mask
+        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.bos_token_id, device='cuda')
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
 # model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072).to('cuda')

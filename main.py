@@ -53,7 +53,7 @@ def train(model:torch.nn.Module, train_dataloader:torch.utils.data.DataLoader,
                     y_out = y_input[:, 1:]
                     loss = torch.nn.CrossEntropyLoss(ignore_index=model.decoder_tokenizer.pad_token_id)\
                                             (out.reshape(-1, out.shape[-1]), y_out.reshape(-1))
-        
+                losses = (losses[0] + loss.item(), losses[1] + 1)
         print(f"Validation loss: {losses[0]/losses[1]}")
         if losses[0]/losses[1] < min_val_loss:
             min_val_loss = losses[0]/losses[1]
@@ -79,7 +79,7 @@ def main():
     summary(model)
     
     if args.from_checkpoint:
-        model.load_state_dict(torch.load(args.from_checkpoint))
+        model.torch.load(args.from_checkpoint).to_cuda()
 
     if not args.test_only:
         optim = Adafactor(model.parameters(), weight_decay=args.weight_decay)

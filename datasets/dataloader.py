@@ -9,10 +9,11 @@ def get_dataloader(source, target, src_tokenizer, tgt_tokenizer, batch_size, num
         _source, _target = [b[0] for b in batch], [b[1] for b in batch]
         _source, _target = src_tokenizer(_source, return_tensors='pt', padding=True, pad_left=False), tgt_tokenizer(_target, return_tensors='pt', padding=True, pad_left=False)
         return _source, _target
+    def test_collate_fn(batch): return [b[0] for b in batch], [b[1] for b in batch]
     return DataLoader(
         dataset=IWSLTDataset(source, target),
         batch_size=batch_size,
         shuffle=not test,
-        collate_fn=collate_fn if not test else None,
+        collate_fn=collate_fn if not test else test_collate_fn,
         # num_workers=num_workers
     )
