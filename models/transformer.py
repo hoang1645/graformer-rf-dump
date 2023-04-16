@@ -169,7 +169,8 @@ class CustomGraformer(nn.Module):
             prob = self.lmhead(causal_out[:,-1] + out[:, -1])
             _, next_word = torch.max(prob, dim=-1)
             next_word = next_word.reshape((-1,1))
-            next_word[last_word==self.decoder_tokenizer.eos_token_id or last_word==self.decoder_tokenizer.pad_token_id] = self.decoder_tokenizer.pad_token_id
+            next_word[last_word==self.decoder_tokenizer.eos_token_id] = self.decoder_tokenizer.pad_token_id
+            next_word[last_word==self.decoder_tokenizer.pad_token_id] = self.decoder_tokenizer.pad_token_id
             last_word = next_word.long().reshape((-1,1))
             ys = torch.cat([ys, \
                             last_word], dim=1)
