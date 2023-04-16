@@ -177,11 +177,10 @@ class CustomGraformer(nn.Module):
         return ys
     
     def translate(self, sentences:str):
-        self.eval()
         encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt', padding=True)
         
         encoder_input_ids, encoder_attention_mask = encoder_tokens.input_ids, encoder_tokens.attention_mask
-        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.bos_token_id)
+        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=256, start_symbol=self.decoder_tokenizer.bos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
 # model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072).to('cuda')

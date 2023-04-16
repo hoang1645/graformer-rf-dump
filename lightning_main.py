@@ -54,16 +54,17 @@ def main():
                              strategy=DDPStrategy(find_unused_parameters=True) if torch.cuda.device_count() > 1 else 'auto'
                              )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
-
+    
     else:
-        model.load_from_checkpoint(args.from_checkpoint)
+        state_dict = torch.load(args.from_checkpoint)['state_dict']
+        model.load_state_dict(state_dict)
     
     # test
     test_dataloader = get_dataloader(args.test_path_src, args.test_path_tgt, 
                                           model.graformer.encoder_tokenizer, 
                                           model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size, test=True) # don't tokenize in test dataloader
-    core = model.graformer
+    core = model.graformer.half().to('cuda')
     
     translations = []
     targets = []
