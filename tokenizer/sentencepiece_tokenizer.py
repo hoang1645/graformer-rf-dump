@@ -37,16 +37,19 @@ class SentencePieceTokenizer(object):
             max_len = 0
             for id_ in ids:
                 if len(id_) > max_len: max_len = len(id_)
-            t_ids = torch.ones(size=(len(ids), max_len), dtype=torch.int, )
-            attention_mask = t_ids.long()
+            t_ids = torch.ones(size=(len(ids), max_len + 2), dtype=torch.int, )
+            attention_mask = torch.zeros_like(t_ids)
             t_ids = t_ids * self.pad_token_id
+            t_ids[:, 0] = self.bos_token_id
             for i, id_ in enumerate(ids):
                 if pad_left:
-                    t_ids[i, :len(id_)] = torch.Tensor(id_)
+                    t_ids[i, 1:len(id_)+1] = torch.Tensor(id_)
+                    attention_mask[i, :len(id_)+2] = 1
                 else:
-                    t_ids[i, -len(id_):] = torch.Tensor(id_)
+                    t_ids[i, -len(id_)-1:-1] = torch.Tensor(id_)
+                    attention_mask[i, -len(id_)-2:] = 1
             ids = t_ids.long()
-            attention_mask[t_ids==self.pad_token_id] = 0
+            attention_mask = attention_mask.long()
         else:
             attention_mask = [[1] * len(id_) for id_ in ids]
         return_results = BatchEncoding()
