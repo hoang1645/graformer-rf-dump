@@ -42,13 +42,14 @@ def main():
         
         if not os.path.isdir('outputs'): os.mkdir('outputs')
         
-        routine_pt_callback = ModelCheckpoint(dirpath='outputs', save_last=True, save_weights_only=True, 
+        routine_pt_callback = ModelCheckpoint(dirpath='outputs', save_last=True,
                                    every_n_epochs=1, auto_insert_metric_name=True, verbose=True)
         routine_pt_callback.FILE_EXTENSION = '.pt'
 
 
-        best_pt_callback = ModelCheckpoint(save_top_k=1, save_weights_only=True, 
-                                           filename='outputs/best.pt', monitor='val_loss', verbose=True)
+        best_pt_callback = ModelCheckpoint(dirpath='outputs', save_top_k=1, save_weights_only=True, 
+                                           filename='best', monitor='val_loss', verbose=True)
+        best_pt_callback.FILE_EXTENSION = '.pt'
         trainer = pl.Trainer(accelerator='auto', devices=-1,
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
                              strategy=DDPStrategy(find_unused_parameters=True) if torch.cuda.device_count() > 1 else 'auto'

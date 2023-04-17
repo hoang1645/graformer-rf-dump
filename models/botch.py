@@ -7,6 +7,7 @@ def get_model_with_different_embedding_layer(bert_name, gpt_name='openai-gpt', v
     botched_bert_config = BertConfig.from_pretrained(bert_name)
     botched_bert_config.vocab_size = vocab_size
     botched_bert_config.pad_token_id = pad_token_id
+    print(botched_bert_config)
 
     botched_bert = BertModel(botched_bert_config).to('cpu')
     bert_keepers = OrderedDict()
@@ -23,7 +24,7 @@ def get_model_with_different_embedding_layer(bert_name, gpt_name='openai-gpt', v
     botched_gpt_config = OpenAIGPTConfig.from_pretrained(gpt_name)
     botched_gpt_config.vocab_size = vocab_size
     botched_gpt_config.pad_token_id = pad_token_id
-
+    print(botched_gpt_config)
     botched_gpt = OpenAIGPTModel(botched_gpt_config).to('cpu')
 
     gpt_keepers = OrderedDict()
@@ -37,6 +38,6 @@ def get_model_with_different_embedding_layer(bert_name, gpt_name='openai-gpt', v
     botched_gpt.load_state_dict(gpt_keepers)
     return botched_bert, botched_gpt
 
-# botched_bert, botched_gpt = get_model_with_different_embedding_layer('bert-base-uncased')
-# print(list(botched_bert.children()))
-# print(list(botched_gpt.children()))
+botched_bert, botched_gpt = get_model_with_different_embedding_layer('bert-base-uncased')
+print(list(botched_bert.children()))
+print(list(botched_gpt.children()))

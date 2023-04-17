@@ -1,12 +1,12 @@
 import torch
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, PreTrainedModel
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Union
 
 
 class CustomGraformer(nn.Module):
-    def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
+    def __init__(self, masked_encoder:Union[PreTrainedModel, str], causal_decoder: Union[PreTrainedModel, str], 
                  d_model:int=512, n_heads=8, dff=2048, n_encoder_layers=6, n_decoder_layers=6,
                  layer_norm=1e-5, dropout=.1, activation=F.gelu, encoder_tokenizer=None, decoder_tokenizer=None, device='cuda',
                  *args, **kwargs) -> None:
@@ -107,31 +107,30 @@ class CustomGraformer(nn.Module):
             self.decoder_tokenizer.pad_token_id = self.decoder_tokenizer.eos_token_id
             self.decoder_tokenizer.pad_token = self.decoder_tokenizer.eos_token
             
-
-
         self.lmhead = nn.Linear(d_model, self.decoder_tokenizer.vocab_size)
             
-    def forward(self, source, src_mask, target, tgt_mask):
+    def forward(self, source, src_mask, target, tgt_mask) -> torch.Tensor:
         masked_encoder_output = self.masked_encoder(source, src_mask).last_hidden_state
         
         # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
         causal_decoder_output = self.causal_decoder(target, tgt_mask).last_hidden_state
 
-        memory = self.k_layer_encoder_stack.forward(masked_encoder_output)
+        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask)
 
-        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=tgt_mask)
 
 
         return self.lmhead(output + causal_decoder_output)
     
     def encode(self, src, src_mask):
         masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
-        return self.k_layer_encoder_stack.forward(masked_encoder_output)
+        return self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask)
 
     def decode(self, tgt, memory, tgt_mask):
         causal_decoder_output = self.causal_decoder(tgt, tgt_mask).last_hidden_state
-        return causal_decoder_output, self.k_layer_decoder_stack.forward(causal_decoder_output, memory)
+        return causal_decoder_output, self.k_layer_decoder_stack.forward(causal_decoder_output, memory,
+                                                                         tgt_key_padding_mask=tgt_mask)
 
     # @staticmethod
     # def create_mask(src, tgt, device='cpu'):
@@ -162,18 +161,19 @@ class CustomGraformer(nn.Module):
         for _ in range(max_len-1):
             
             memory = memory.to(DEVICE)
-            tgt_mask = torch.ones(ys.shape).to(DEVICE)
+            tgt_mask = torch.ones_like(ys).to(DEVICE)
+            tgt_mask[ys==self.decoder_tokenizer.pad_token_id] = 0
             causal_out, out = self.decode(ys, memory, tgt_mask)
-            
+            # print(causal_out.shape, out.shape)
             # out = out.transpose(0, 1)
             prob = self.lmhead(causal_out[:,-1] + out[:, -1])
+            
             _, next_word = torch.max(prob, dim=-1)
             next_word = next_word.reshape((-1,1))
-            next_word[last_word==self.decoder_tokenizer.eos_token_id] = self.decoder_tokenizer.pad_token_id
-            next_word[last_word==self.decoder_tokenizer.pad_token_id] = self.decoder_tokenizer.pad_token_id
             last_word = next_word.long().reshape((-1,1))
             ys = torch.cat([ys, \
                             last_word], dim=1)
+            if all(next_word==self.decoder_tokenizer.pad_token_id): break
         # print(ys)
         return ys
     
@@ -184,9 +184,18 @@ class CustomGraformer(nn.Module):
         target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=256, start_symbol=self.decoder_tokenizer.bos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
-# model = CustomGraformer('bert-base-uncased', 'openai-gpt', 768, 12, 3072).to('cuda')
-# input()
-# model.translate('a a a a a a')
+# tokenizer = SentencePieceTokenizer('sentencepiece.model')
+
+# botched_bert, botched_gpt = get_model_with_different_embedding_layer('bert-base-uncased', 'openai-gpt', 
+#                                                                         tokenizer.vocab_size, tokenizer.pad_token_id)
+
+
+# model = CustomGraformer(
+#         botched_bert, botched_gpt, 768,12,3072, encoder_tokenizer=tokenizer,
+#         decoder_tokenizer=tokenizer
+#     ).to('cuda')
+
+# print(model.translate(['hello there']))
 # x = torch.randint(1, 10000, size=(2, 30))
 # x_mask = torch.ones(x.shape)
 
