@@ -126,12 +126,12 @@ class CustomGraformer(nn.Module):
     
     def encode(self, src, src_mask):
         masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
-        return self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask)
+        return self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=1-src_mask)
 
     def decode(self, tgt, memory, tgt_mask):
         causal_decoder_output = self.causal_decoder(tgt, tgt_mask).last_hidden_state
         return causal_decoder_output, self.k_layer_decoder_stack.forward(causal_decoder_output, memory,
-                                                                         tgt_key_padding_mask=tgt_mask,
+                                                                         tgt_key_padding_mask=1-tgt_mask,
                                                                          tgt_mask=__class__.generate_square_subsequent_mask(tgt.shape[-1]))
     
     @staticmethod
