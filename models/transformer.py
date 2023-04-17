@@ -118,7 +118,8 @@ class CustomGraformer(nn.Module):
 
         memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask)
 
-        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=tgt_mask)
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=tgt_mask,
+                                                    tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]))
 
 
         return self.lmhead(output + causal_decoder_output)
@@ -130,7 +131,14 @@ class CustomGraformer(nn.Module):
     def decode(self, tgt, memory, tgt_mask):
         causal_decoder_output = self.causal_decoder(tgt, tgt_mask).last_hidden_state
         return causal_decoder_output, self.k_layer_decoder_stack.forward(causal_decoder_output, memory,
-                                                                         tgt_key_padding_mask=tgt_mask)
+                                                                         tgt_key_padding_mask=tgt_mask,
+                                                                         tgt_mask=__class__.generate_square_subsequent_mask(tgt.shape[-1]))
+    
+    @staticmethod
+    def generate_square_subsequent_mask(sz):
+        mask = (torch.triu(torch.ones((sz, sz), device='cuda')) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
 
     # @staticmethod
     # def create_mask(src, tgt, device='cpu'):
@@ -162,7 +170,6 @@ class CustomGraformer(nn.Module):
             
             memory = memory.to(DEVICE)
             tgt_mask = torch.ones_like(ys).to(DEVICE)
-            tgt_mask[ys==self.decoder_tokenizer.pad_token_id] = 0
             causal_out, out = self.decode(ys, memory, tgt_mask)
             # print(causal_out.shape, out.shape)
             # out = out.transpose(0, 1)
