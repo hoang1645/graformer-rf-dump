@@ -116,9 +116,9 @@ class CustomGraformer(nn.Module):
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
         causal_decoder_output = self.causal_decoder(target, tgt_mask).last_hidden_state
 
-        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask)
+        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=(1-src_mask).float())
 
-        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=tgt_mask,
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=(1-tgt_mask).float(),
                                                     tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]))
 
 
@@ -126,12 +126,12 @@ class CustomGraformer(nn.Module):
     
     def encode(self, src, src_mask):
         masked_encoder_output = self.masked_encoder(src, src_mask).last_hidden_state
-        return self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=1-src_mask)
+        return self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=(1-src_mask).float())
 
     def decode(self, tgt, memory, tgt_mask):
         causal_decoder_output = self.causal_decoder(tgt, tgt_mask).last_hidden_state
         return causal_decoder_output, self.k_layer_decoder_stack.forward(causal_decoder_output, memory,
-                                                                         tgt_key_padding_mask=1-tgt_mask,
+                                                                         tgt_key_padding_mask=(1-tgt_mask).float(),
                                                                          tgt_mask=__class__.generate_square_subsequent_mask(tgt.shape[-1]))
     
     @staticmethod
@@ -139,6 +139,8 @@ class CustomGraformer(nn.Module):
         mask = (torch.triu(torch.ones((sz, sz), device='cuda')) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
+    
+    
 
     # @staticmethod
     # def create_mask(src, tgt, device='cpu'):

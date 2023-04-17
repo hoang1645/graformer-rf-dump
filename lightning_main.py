@@ -55,6 +55,7 @@ def main():
                              strategy=DDPStrategy(find_unused_parameters=True) if torch.cuda.device_count() > 1 else 'auto'
                              )
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
+        # MixedPrecisionPlugin()
     
     else:
         state_dict = torch.load(args.from_checkpoint)['state_dict']

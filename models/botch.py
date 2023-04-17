@@ -37,7 +37,3 @@ def get_model_with_different_embedding_layer(bert_name, gpt_name='openai-gpt', v
     gpt_keepers['tokens_embed.weight'] = botched_gpt.state_dict()['tokens_embed.weight']
     botched_gpt.load_state_dict(gpt_keepers)
     return botched_bert, botched_gpt
-
-botched_bert, botched_gpt = get_model_with_different_embedding_layer('bert-base-uncased')
-print(list(botched_bert.children()))
-print(list(botched_gpt.children()))
