@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from models.transformer import CustomGraformer
 from typing import Union
 import os
-from transformers.optimization import Adafactor
+from transformers.optimization import Adafactor, AdafactorSchedule
 
 class LightningGraformer(pl.LightningModule):
     def __init__(self, masked_encoder:Union[nn.Module, str], causal_decoder: Union[nn.Module, str], 
@@ -61,7 +61,9 @@ class LightningGraformer(pl.LightningModule):
         self.graformer.forward(source, src_mask, target, tgt_mask)
 
     def configure_optimizers(self):
-        return Adafactor(self.graformer.parameters(), weight_decay=1e-5)
+        optim = Adafactor(self.graformer.parameters(), weight_decay=1e-5, warmup_init=True)
+        return [optim],\
+                [{'scheduler':AdafactorSchedule(optim, self.lr), 'interval':'epoch'}]
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
@@ -84,7 +86,7 @@ class LightningGraformer(pl.LightningModule):
 
         out = self.graformer(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
         y_out = y_input[:, 1:]
-        val_loss = self.criterion(out.reshape(-1, out.transpose(0, 1).shape[-1]), y_out.transpose(0,1).reshape(-1))
+        val_loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out.transpose(0,1).reshape(-1))
 
         self.log("val_loss", val_loss)
         self.curr_val_loss = val_loss

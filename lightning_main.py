@@ -16,6 +16,8 @@ def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
+    if args.tensor_core_precision is not None: torch.set_float32_matmul_precision('medium')
+    
     # tokenizer = SentencePieceTokenizer('sentencepiece.model')
 
     # botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
@@ -32,7 +34,7 @@ def main():
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.graformer.encoder_tokenizer, 
                                           model.graformer.decoder_tokenizer,
-                                          batch_size=args.batch_size)
+                                          batch_size=args.batch_size, num_workers=args.num_workers)
         val_dataloader = get_dataloader(args.valid_path_src, args.valid_path_tgt, 
                                           model.graformer.encoder_tokenizer, 
                                           model.graformer.decoder_tokenizer,
@@ -55,6 +57,7 @@ def main():
                              strategy=DDPStrategy(find_unused_parameters=True) if torch.cuda.device_count() > 1 else 'auto',
                              plugins=MixedPrecisionPlugin('16-mixed', 'cuda', torch.cuda.amp.grad_scaler.GradScaler())
                              )
+        
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
         # MixedPrecisionPlugin()
     
