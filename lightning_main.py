@@ -16,26 +16,26 @@ def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
-    tokenizer = SentencePieceTokenizer('sentencepiece.model')
+    # tokenizer = SentencePieceTokenizer('sentencepiece.model')
 
-    botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
-                                                                         tokenizer.vocab_size, tokenizer.pad_token_id)
+    # botched_bert, botched_gpt = get_model_with_different_embedding_layer(args.masked_encoder, args.causal_decoder, 
+                                                                        #  tokenizer.vocab_size, tokenizer.pad_token_id)
 
     model = LightningGraformer(
-            botched_bert, botched_gpt, args.d_model, args.n_heads, args.dff, 
-            encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
+            args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, 
+            # encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
         )
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
-                                          tokenizer, 
-                                          tokenizer,
+                                          model.graformer.encoder_tokenizer, 
+                                          model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size)
         val_dataloader = get_dataloader(args.valid_path_src, args.valid_path_tgt, 
-                                          tokenizer, 
-                                          tokenizer,
+                                          model.graformer.encoder_tokenizer, 
+                                          model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size)
         
         # for src, tgt in train_dataloader: print(src.input_ids.shape, tgt.input_ids.shape)
