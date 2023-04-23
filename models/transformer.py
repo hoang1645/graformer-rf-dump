@@ -56,6 +56,7 @@ class CustomGraformer(nn.Module):
         # Freeze the causal decoder
         if isinstance(causal_decoder, str):
             self.causal_decoder.requires_grad_(False)
+            self.masked_encoder.requires_grad_(False)
         else:
             for child in list(self.causal_decoder.children())[1:]:
                 child.requires_grad_(False)
