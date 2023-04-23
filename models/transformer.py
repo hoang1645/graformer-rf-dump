@@ -114,12 +114,12 @@ class CustomGraformer(nn.Module):
         
         # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
-        causal_decoder_output = torch.Tensor(self.causal_decoder(target, tgt_mask).last_hidden_state)
+        causal_decoder_output = self.causal_decoder(target, tgt_mask).last_hidden_state
 
-        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=(1-src_mask).to(causal_decoder_output.type()))
+        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=(1-src_mask).to(dtype=causal_decoder_output.type()))
 
-        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=(1-tgt_mask).to(causal_decoder_output.type()),
-                                                    tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(causal_decoder_output.type()))
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=(1-tgt_mask).to(dtype=causal_decoder_output.type()),
+                                                    tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(dtype=causal_decoder_output.type()))
 
 
         return self.lmhead(output + causal_decoder_output)
