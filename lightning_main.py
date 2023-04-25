@@ -75,11 +75,14 @@ def main():
     translations = []
     targets = []
 
-    for src, tgt in tqdm(test_dataloader):
+    for src, tgt in (t:=tqdm(test_dataloader, desc="Evaluating on test dataset")):
         trl = core.translate(src)
+        print(trl)
         translations.extend(trl)
         targets.extend(tgt)
-    
+
+        t.set_description(f"Evaluating on test dataset ({corpus_bleu(translations, [targets]).score})")
+
     print(corpus_bleu(translations, [targets]))
 
 main()
