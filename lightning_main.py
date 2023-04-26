@@ -11,12 +11,14 @@ from models.botch import *
 from tokenizer.sentencepiece_tokenizer import *
 from pytorch_lightning.strategies.ddp import DDPStrategy
 import os
+from torchinfo import summary
+
 
 def main():
     parser = GraformerArgumentParser()
     args = parser.get_args()
 
-    if args.tensor_core_precision is not None: torch.set_float32_matmul_precision('medium')
+    if args.tensor_core_precision is not None: torch.set_float32_matmul_precision(args.tensor_core_precision)
     
     # tokenizer = SentencePieceTokenizer('sentencepiece.model')
 
@@ -27,6 +29,7 @@ def main():
             args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, 
             # encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
         )
+    summary(model)
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:

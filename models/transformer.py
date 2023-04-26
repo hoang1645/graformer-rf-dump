@@ -56,7 +56,6 @@ class CustomGraformer(nn.Module):
         # Freeze the causal decoder
         if isinstance(causal_decoder, str):
             self.causal_decoder.requires_grad_(False)
-            self.masked_encoder.requires_grad_(False)
         else:
             for child in list(self.causal_decoder.children())[1:]:
                 child.requires_grad_(False)
@@ -68,7 +67,7 @@ class CustomGraformer(nn.Module):
         )
 
         self.k_layer_decoder_stack = nn.TransformerDecoder(
-            nn.TransformerDecoderLayer(d_model, n_heads, dff, dropout, activation, layer_norm_eps=layer_norm, batch_first=True),
+            nn.TransformerDecoderLayer(d_model, n_heads, d_model, dropout, activation, layer_norm_eps=layer_norm, batch_first=True),
             # norm=nn.LayerNorm(self.causal_decoder.config.vocab_size, layer_norm),
             num_layers=n_decoder_layers
         )
