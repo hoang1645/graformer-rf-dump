@@ -33,6 +33,8 @@ def main():
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:
+        if args.unfreeze_encoder:
+            model.graformer.masked_encoder.requires_grad_(True)
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.graformer.encoder_tokenizer, 

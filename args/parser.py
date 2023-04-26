@@ -39,6 +39,10 @@ class GraformerArgumentParser(object):
         self.parser.add_argument('--weight_decay', type=float, default=0)
         self.parser.add_argument('--tensor_core_precision', type=str, default=None, choices=['highest', 'high', 'medium'])
 
+        self.parser.add_argument('--unfreeze_encoder', action=argparse.BooleanOptionalAction \
+                                 if sys.version_info.major==3 and sys.version_info.minor>=9 else 'store_true')
+        
+
         self.args = self.parser.parse_args()
         if not self.args.test_only:
             if not self.args.train_path_src or not self.args.train_path_tgt:
