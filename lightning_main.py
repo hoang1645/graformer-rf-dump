@@ -33,8 +33,10 @@ def main():
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     # model.half()
     if not args.test_only:
-        if args.unfreeze_encoder:
-            model.graformer.masked_encoder.requires_grad_(True)
+        if args.load_only_weights and args.from_checkpoint is not None:
+            ckpt_dict = torch.load(args.from_checkpoint)
+            model.load_state_dict(ckpt_dict['state_dict'])
+            
         # dataloader goes here
         train_dataloader = get_dataloader(args.train_path_src, args.train_path_tgt, 
                                           model.graformer.encoder_tokenizer, 
@@ -63,7 +65,7 @@ def main():
                              plugins=MixedPrecisionPlugin('16-mixed', 'cuda', torch.cuda.amp.grad_scaler.GradScaler())
                              )
         
-        trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=args.from_checkpoint)
+        trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=None if args.load_only_weights else args.from_checkpoint)
         # MixedPrecisionPlugin()
     
     else:
