@@ -67,7 +67,7 @@ class CustomGraformer(nn.Module):
         )
 
         self.k_layer_decoder_stack = nn.TransformerDecoder(
-            nn.TransformerDecoderLayer(d_model, n_heads, d_model, dropout, activation, layer_norm_eps=layer_norm, batch_first=True),
+            nn.TransformerDecoderLayer(d_model, n_heads, dff, dropout, activation, layer_norm_eps=layer_norm, batch_first=True),
             # norm=nn.LayerNorm(self.causal_decoder.config.vocab_size, layer_norm),
             num_layers=n_decoder_layers
         )
