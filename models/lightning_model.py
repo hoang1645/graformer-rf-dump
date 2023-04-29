@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from models.transformer import CustomGraformer
-from typing import Union
+from typing import Any, Union
 import os
 from transformers.optimization import Adafactor, AdafactorSchedule
 

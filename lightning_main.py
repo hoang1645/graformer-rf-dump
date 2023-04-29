@@ -31,6 +31,7 @@ def main():
         )
     summary(model)
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
+    if args.unfreeze_encoder: model.graformer.masked_encoder.requires_grad_()
     # model.half()
     if not args.test_only:
         if args.load_only_weights and args.from_checkpoint is not None:
