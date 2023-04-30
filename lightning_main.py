@@ -68,6 +68,7 @@ def main():
         
         trainer.fit(model, train_dataloader, val_dataloader, ckpt_path=None if args.load_only_weights else args.from_checkpoint)
         # MixedPrecisionPlugin()
+        
     
     else:
         state_dict = torch.load(args.from_checkpoint)['state_dict']
@@ -78,7 +79,8 @@ def main():
                                           model.graformer.encoder_tokenizer, 
                                           model.graformer.decoder_tokenizer,
                                           batch_size=args.batch_size, test=True) # don't tokenize in test dataloader
-    core = model.graformer.half().to('cuda')
+    model.half()
+    core = model.graformer.to('cuda')
     
     translations = []
     targets = []
@@ -89,7 +91,7 @@ def main():
         translations.extend(trl)
         targets.extend(tgt)
 
-        t.set_description(f"Evaluating on test dataset ({corpus_bleu(translations, [targets]).score})")
+        # t.set_description(f"Evaluating on test dataset ({corpus_bleu(translations, [targets]).score})")
 
     print(corpus_bleu(translations, [targets]))
 

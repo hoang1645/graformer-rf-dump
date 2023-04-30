@@ -193,7 +193,7 @@ class CustomGraformer(nn.Module):
         encoder_tokens = self.encoder_tokenizer(sentences, return_tensors='pt', padding=True)
         
         encoder_input_ids, encoder_attention_mask = encoder_tokens.input_ids, encoder_tokens.attention_mask
-        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=50, start_symbol=self.decoder_tokenizer.bos_token_id)
+        target_tokens = self.greedy_decode(encoder_input_ids, encoder_attention_mask, max_len=128, start_symbol=self.decoder_tokenizer.bos_token_id)
         return self.decoder_tokenizer.batch_decode(target_tokens, skip_special_tokens=True)
 
 # tokenizer = SentencePieceTokenizer('sentencepiece.model')
