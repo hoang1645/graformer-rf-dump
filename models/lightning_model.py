@@ -72,8 +72,9 @@ class LightningGraformer(pl.LightningModule):
         
         
         out = self.graformer.forward(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
-        y_out = y_input[:, 1:]
-        loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out.transpose(0,1).reshape(-1))
+        y_out = y_input[:, 1:].transpose(0,1).reshape(-1)
+        out = out.transpose(0, 1).reshape(-1, out.shape[-1])
+        loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out)
 
         self.log("loss", loss)
 
@@ -84,9 +85,10 @@ class LightningGraformer(pl.LightningModule):
         x_input, x_mask = x.input_ids, x.attention_mask
         y_input, y_mask = y.input_ids, y.attention_mask
 
-        out = self.graformer(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
-        y_out = y_input[:, 1:]
-        val_loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out.transpose(0,1).reshape(-1))
+        out = self.graformer.forward(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
+        y_out = y_input[:, 1:].transpose(0,1).reshape(-1)
+        out = out.transpose(0, 1).reshape(-1, out.shape[-1])
+        val_loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out)
 
         self.log("val_loss", val_loss)
         self.curr_val_loss = val_loss
