@@ -29,6 +29,7 @@ def main():
             args.masked_encoder, args.causal_decoder, args.d_model, args.n_heads, args.dff, 
             # encoder_tokenizer=tokenizer, decoder_tokenizer=tokenizer
         )
+    if args.unfreeze_encoder: model.graformer.masked_encoder.requires_grad_(True)
     summary(model)
     if os.name != 'nt' and args.compile: model = torch.compile(model, backend='inductor', mode='reduce-overhead')
     if args.unfreeze_encoder: model.graformer.masked_encoder.requires_grad_()
