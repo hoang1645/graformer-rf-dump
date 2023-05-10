@@ -110,17 +110,20 @@ class CustomGraformer(nn.Module):
             
         self.lmhead = nn.Linear(d_model, self.decoder_tokenizer.vocab_size)
             
-    def forward(self, source, src_mask, target, tgt_mask) -> torch.Tensor:
+    def forward(self, source:torch.Tensor, src_mask:torch.Tensor, target:torch.Tensor, tgt_mask:torch.Tensor) -> torch.Tensor:
         masked_encoder_output = self.masked_encoder(source, src_mask).last_hidden_state
         
         # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
         causal_decoder_output = self.causal_decoder(target, attention_mask=tgt_mask).last_hidden_state
 
-        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=(1-src_mask).type(torch.bool),
+        src_mask = src_mask.logical_not()
+        tgt_mask = tgt_mask.logical_not()
+
+        memory = self.k_layer_encoder_stack.forward(masked_encoder_output, src_key_padding_mask=src_mask,
                                                     mask=torch.zeros((source.shape[-1], source.shape[-1])).type(torch.bool).to('cuda'))
 
-        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=(1-tgt_mask).type(torch.bool),
+        output = self.k_layer_decoder_stack.forward(causal_decoder_output, memory, tgt_key_padding_mask=tgt_mask,
                                                     tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(dtype=causal_decoder_output.dtype))
 
 
