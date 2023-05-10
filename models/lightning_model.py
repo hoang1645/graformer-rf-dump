@@ -87,7 +87,6 @@ class LightningGraformer(pl.LightningModule):
         val_loss = self.criterion(out, y_out)
 
         self.log("val_loss", val_loss)
-        self.curr_val_loss = val_loss
         return val_loss
     
     
