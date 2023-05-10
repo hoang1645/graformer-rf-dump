@@ -64,7 +64,6 @@ def main():
         trainer = pl.Trainer(accelerator='auto', devices=-1,
                              max_epochs=args.epoch, callbacks=[routine_pt_callback, best_pt_callback], 
                              strategy=DDPStrategy(find_unused_parameters=True) if torch.cuda.device_count() > 1 else 'auto',
-                             num_nodes=torch.cuda.device_count(),
                              plugins=MixedPrecisionPlugin('16-mixed', 'cuda', torch.cuda.amp.grad_scaler.GradScaler())
                              )
         
