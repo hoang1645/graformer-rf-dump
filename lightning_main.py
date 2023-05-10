@@ -5,7 +5,7 @@ from pytorch_lightning.plugins import MixedPrecisionPlugin
 from args.parser import GraformerArgumentParser
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
-from datasets.dataloader import get_dataloader
+from .datasets.dataloader import get_dataloader
 import torch
 from models.botch import *
 from tokenizer.sentencepiece_tokenizer import *
