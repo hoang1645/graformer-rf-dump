@@ -51,10 +51,6 @@ class LightningGraformer(pl.LightningModule):
                  *args, **kwargs)
 
         self.lr = lr
-
-        self.last_val_loss = 1000
-        self.curr_val_loss = 0
-        
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.graformer.decoder_tokenizer.pad_token_id)
         
     def forward(self, source, src_mask, target, tgt_mask):
@@ -87,7 +83,6 @@ class LightningGraformer(pl.LightningModule):
         val_loss = self.criterion(out, y_out)
 
         self.log("val_loss", val_loss)
-        self.curr_val_loss = val_loss
         return val_loss
     
     
