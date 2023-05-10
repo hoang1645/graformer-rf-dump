@@ -66,29 +66,25 @@ class LightningGraformer(pl.LightningModule):
                 [{'scheduler':AdafactorSchedule(optim, self.lr), 'interval':'epoch'}]
 
     def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
-        x_input, x_mask = x.input_ids, x.attention_mask
-        y_input, y_mask = y.input_ids, y.attention_mask
+        x_input, x_mask, y_input, y_mask = train_batch[0].input_ids, train_batch[0].attention_mask, train_batch[1].input_ids, train_batch[1].attention_mask
         
         
         out = self.graformer.forward(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
         y_out = y_input[:, 1:].transpose(0,1).reshape(-1)
         out = out.transpose(0, 1).reshape(-1, out.shape[-1])
-        loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out)
+        loss = self.criterion(out, y_out)
 
         self.log("loss", loss)
 
         return loss
     
     def validation_step(self, valid_batch, valid_idx):
-        x, y = valid_batch
-        x_input, x_mask = x.input_ids, x.attention_mask
-        y_input, y_mask = y.input_ids, y.attention_mask
-
+        x_input, x_mask, y_input, y_mask = valid_batch[0].input_ids, valid_batch[0].attention_mask, valid_batch[1].input_ids, valid_batch[1].attention_mask
+        
         out = self.graformer.forward(x_input, x_mask, y_input[:, :-1], y_mask[:, :-1])
         y_out = y_input[:, 1:].transpose(0,1).reshape(-1)
         out = out.transpose(0, 1).reshape(-1, out.shape[-1])
-        val_loss = self.criterion(out.transpose(0, 1).reshape(-1, out.shape[-1]), y_out)
+        val_loss = self.criterion(out, y_out)
 
         self.log("val_loss", val_loss)
         self.curr_val_loss = val_loss
