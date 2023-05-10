@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from datasets.IWSLTDataset import IWSLTDataset
+from IWSLTDataset import IWSLTDataset
 
 
 def get_dataloader(source, target, src_tokenizer, tgt_tokenizer, batch_size, num_workers=1, test=False):
