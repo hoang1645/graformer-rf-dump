@@ -111,11 +111,11 @@ class CustomGraformer(nn.Module):
         self.lmhead = nn.Linear(d_model, self.decoder_tokenizer.vocab_size)
             
     def forward(self, source:torch.Tensor, src_mask:torch.Tensor, target:torch.Tensor, tgt_mask:torch.Tensor) -> torch.Tensor:
-        encoder_output = self.masked_encoder(source, src_mask).last_hidden_state
+        encoder_output = self.masked_encoder(source, src_mask, ).last_hidden_state
         
         # decoder_tokens = self.decoder_tokenizer(target, return_tensors='pt', padding='max_length', max_length=128)
         # decoder_input_ids, decoder_attention_mask = decoder_tokens['input_ids'], decoder_tokens['attention_mask']
-        causal_decoder_output = self.causal_decoder(target, attention_mask=tgt_mask).last_hidden_state
+        causal_decoder_output = self.causal_decoder(target, attention_mask=tgt_mask, use_cache=False).last_hidden_state
 
         src_mask = src_mask.logical_not()
         tgt_mask = tgt_mask.logical_not()
