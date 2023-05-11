@@ -74,26 +74,26 @@ def main():
     else:
         state_dict = torch.load(args.from_checkpoint)['state_dict']
         model.load_state_dict(state_dict)
-    
-    # test
-    test_dataloader = get_dataloader(args.test_path_src, args.test_path_tgt, 
-                                          model.graformer.encoder_tokenizer, 
-                                          model.graformer.decoder_tokenizer,
-                                          batch_size=args.batch_size, test=True) # don't tokenize in test dataloader
-    model.half()
-    core = model.graformer.to('cuda')
-    
-    translations = []
-    targets = []
+    if not args.no_test:
+        # test
+        test_dataloader = get_dataloader(args.test_path_src, args.test_path_tgt, 
+                                            model.graformer.encoder_tokenizer, 
+                                            model.graformer.decoder_tokenizer,
+                                            batch_size=args.batch_size, test=True) # don't tokenize in test dataloader
+        model.half()
+        core = model.graformer.to('cuda')
+        
+        translations = []
+        targets = []
 
-    for src, tgt in (t:=tqdm(test_dataloader, desc="Evaluating on test dataset")):
-        trl = core.translate(src)
-        print(trl)
-        translations.extend(trl)
-        targets.extend(tgt)
+        for src, tgt in (t:=tqdm(test_dataloader, desc="Evaluating on test dataset")):
+            trl = core.translate(src)
+            print(trl)
+            translations.extend(trl)
+            targets.extend(tgt)
 
-        # t.set_description(f"Evaluating on test dataset ({corpus_bleu(translations, [targets]).score})")
+            # t.set_description(f"Evaluating on test dataset ({corpus_bleu(translations, [targets]).score})")
 
-    print(corpus_bleu(translations, [targets]))
+        print(corpus_bleu(translations, [targets]))
 
 main()

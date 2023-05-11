@@ -123,7 +123,7 @@ class CustomGraformer(nn.Module):
         encoder_output = self.k_layer_encoder_stack.forward(encoder_output, src_key_padding_mask=src_mask)
 
         output = self.k_layer_decoder_stack.forward(causal_decoder_output, encoder_output, tgt_key_padding_mask=tgt_mask,
-                                                    tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(dtype=causal_decoder_output.dtype))
+                                                    tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(dtype=causal_decoder_output.dtype).to(device=causal_decoder_output.device))
 
 
         return self.lmhead(output + causal_decoder_output)
@@ -141,7 +141,7 @@ class CustomGraformer(nn.Module):
     
     @staticmethod
     def generate_square_subsequent_mask(sz):
-        mask = (torch.triu(torch.ones((sz, sz), device='cuda')) == 1).transpose(0, 1)
+        mask = (torch.triu(torch.ones((sz, sz))) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
     

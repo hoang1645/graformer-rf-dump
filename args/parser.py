@@ -44,7 +44,9 @@ class GraformerArgumentParser(object):
         self.parser.add_argument('--load_only_weights',  action=argparse.BooleanOptionalAction \
                                  if sys.version_info.major==3 and sys.version_info.minor>=9 else 'store_true',
                                  help="only load model weights and ignore optims, epoch count, etc., this means training from epoch 0. Should only be used when there are changes within the model internally (like (un)freezing the encoder/decoder)")
-
+        self.parser.add_argument('--no-test',  action=argparse.BooleanOptionalAction \
+                                 if sys.version_info.major==3 and sys.version_info.minor>=9 else 'store_true',
+        )
         self.args = self.parser.parse_args()
         if not self.args.test_only:
             if not self.args.train_path_src or not self.args.train_path_tgt:
