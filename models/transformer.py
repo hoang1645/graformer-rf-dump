@@ -120,8 +120,7 @@ class CustomGraformer(nn.Module):
         src_mask = src_mask.logical_not()
         tgt_mask = tgt_mask.logical_not()
 
-        encoder_output = self.k_layer_encoder_stack.forward(encoder_output, src_key_padding_mask=src_mask,
-                                                    mask=torch.zeros((source.shape[-1], source.shape[-1])).type(torch.bool).to('cuda'))
+        encoder_output = self.k_layer_encoder_stack.forward(encoder_output, src_key_padding_mask=src_mask)
 
         output = self.k_layer_decoder_stack.forward(causal_decoder_output, encoder_output, tgt_key_padding_mask=tgt_mask,
                                                     tgt_mask=__class__.generate_square_subsequent_mask(target.shape[-1]).to(dtype=causal_decoder_output.dtype))
